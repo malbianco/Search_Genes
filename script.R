@@ -2,31 +2,41 @@
 rm(list=ls())
 cat("\14")
 specie="cow"
-window=250000
+
+#library
+library(refGenome)
+
+
 gtf="Bos_taurus.UMD3.1.88.gtf"
-snp="snp.txt"
+snp_file="snp.txt"
 method="gene"
 
-genes=fai(gtf,snp,method)
 
-## ho solo un dubbio sulla finestra perchè nei primi geni della lista
-## crea un valore negativo per lower
-
-fai=function(gtf,snp,type=c("gene","exon"))
-{
-  gt=read.table(paste0("../",gtf),fill=T)
-  markers=read.table(snp,header=T)
+#Function
+search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000){
+  
+  #check method
+  method <- match.arg(method)
+  message(paste("You are using the method:", method))
+  
+  #load file
+  #TODO lettura dei path
+  gtf=read.table(paste0("../",gtf),fill=T)
+  markers=read.table(snp_file,header=T)
   colnames(markers)=c("chr","snp","position","value")
-  if (specie=="cow") ncrom="29"
-  if (specie=="sheep") ncrom="26"
+
+  #Per ora lo lasciamo
+  # if (specie=="cow") ncrom="29"
+  # if (specie=="sheep") ncrom="26"
+  
   ## start function
   if (method == "gene") {
-    print(paste("searching:",method))
-    gene=subset(gt,V3=="gene",select=c(1,10,3,4,5))
+    #print(paste("searching:",method))
+    gene=subset(gtf,V3=="gene",select=c(1,10,3,4,5))
     colnames(gene)=c("chr","name","type","start","end")
     gene$lower=gene$start-window
     gene$upper=gene$end+window
-    for (chr in 1:ncrom) { # chr in 1:ncrom usando specie
+    for (chr in markers$chr) { # chr in 1:ncrom usando specie
       temp_gene=gene[gene$chr==chr,]
       temp_markers=markers[markers$chr==chr,]
       temp_gene$ok=F
@@ -45,12 +55,12 @@ fai=function(gtf,snp,type=c("gene","exon"))
   }
  } 
   else {
-    print(paste("searching:",method))
-    gene=subset(gt,V3=="gene",select=c(1,10,3,4,5))
+    #print(paste("searching:",method))
+    gene=subset(gtf,V3=="exon",select=c(1,10,3,4,5))
     colnames(gene)=c("chr","name","type","start","end")
     gene$lower=gene$start-window
     gene$upper=gene$end+window
-    for (chr in 1:ncrom) { # chr in 1:ncrom usando specie
+    for (chr in markers$chr) { # chr in 1:ncrom usando specie
       temp_gene=gene[gene$chr==chr,]
       temp_markers=markers[markers$chr==chr,]
       temp_gene$ok=F
@@ -73,3 +83,5 @@ return(genes)
 }
 
 
+
+genes=search_genes(gtf,snp_file,method="gene")
