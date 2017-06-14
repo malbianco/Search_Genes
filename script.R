@@ -7,10 +7,9 @@ specie="cow"
 library(refGenome)
 
 
-gtf="Bos_taurus.UMD3.1.88.gtf"
+gtf_file="Bos_taurus.UMD3.1.88.gtf"
 snp_file="snp.txt"
-method="gene"
-
+window=250000
 
 #Function
 search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000){
@@ -21,7 +20,11 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
   
   #load file
   #TODO lettura dei path
-  gtf=read.table(paste0("../",gtf),fill=T)
+  gtf=ensemblGenome()
+  read.gtf(gtf,paste0("../",gtf_file))
+  genes=data.frame(gtf@ev$genes)
+  entire=data.frame(gtf@ev$gtf)
+  exon=entire[entire$feature=="exon",]
   markers=read.table(snp_file,header=T)
   colnames(markers)=c("chr","snp","position","value")
 
@@ -32,10 +35,11 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
   ## start function
   if (method == "gene") {
     #print(paste("searching:",method))
-    gene=subset(gtf,V3=="gene",select=c(1,10,3,4,5))
-    colnames(gene)=c("chr","name","type","start","end")
+    gene=genes[,c("seqid","gene_id","gene_name","start","end")]
+    colnames(gene)=c("chr","gene_id","gene_name","start","end")
     gene$lower=gene$start-window
     gene$upper=gene$end+window
+    chromosomes=markers$chr
     for (chr in markers$chr) { # chr in 1:ncrom usando specie
       temp_gene=gene[gene$chr==chr,]
       temp_markers=markers[markers$chr==chr,]
@@ -49,15 +53,15 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
         }
       }
       temp_gene=temp_gene[temp_gene$ok,]
-      if (chr == 1) genes=temp_gene
-      else genes=rbind(genes,temp_gene)
+      if (chr == chromosomes[1]) final=temp_gene
+      else final=rbind(final,temp_gene)
    }
   }
  } 
   else {
     #print(paste("searching:",method))
-    gene=subset(gtf,V3=="exon",select=c(1,10,3,4,5))
-    colnames(gene)=c("chr","name","type","start","end")
+    gene=exon[,c("seqid","exon_id","gene_name","start","end")]
+    colnames(gene)=c("chr","exon_id","gene_name","start","end")
     gene$lower=gene$start-window
     gene$upper=gene$end+window
     for (chr in markers$chr) { # chr in 1:ncrom usando specie
@@ -73,15 +77,19 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
           }
         }
         temp_gene=temp_gene[temp_gene$ok,]
-        if (chr == 1) genes=temp_gene
-        else genes=rbind(genes,temp_gene)
+        if (chr == chromosomes[1]) final=temp_gene
+        else final=rbind(final,temp_gene)
       }
     }
   } 
-genes=genes[,1:5]
-return(genes)
+final=final[,1:5]
+return(final)
 }
 
 
 
-genes=search_genes(gtf,snp_file,method="gene")
+genes=search_genes(gtf_file,snp_file,method="gene")
+
+
+
+
