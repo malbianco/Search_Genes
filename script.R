@@ -6,9 +6,11 @@ specie="cow"
 #library
 library(refGenome)
 
-
 gtf_path="../Bos_taurus.UMD3.1.88.gtf"
 snp_path="snp.txt"
+
+gtf_file="../Bos_taurus.UMD3.1.88.gtf"
+snp_file="snp.txt"
 
 #Function
 search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000){
@@ -36,7 +38,7 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
   #read gtf file
   gtf=ensemblGenome()
   read.gtf(gtf,gtf_file)
-  
+
   #Creating gene data frame
   if (method=="gene"){
     genes=data.frame(gtf@ev$genes)
@@ -59,13 +61,16 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
     temp_gene=gene[gene$chr==chr,]
     temp_markers=markers[markers$chr==chr,]
     temp_gene$ok=F
+    posizione=temp_markers[,c("snp","position")]
     if (nrow(temp_markers) > 0) {
-      for (k in 1:nrow(temp_markers)) {
-        posizione=temp_markers[k,"position"]
+      for (k in 1:nrow(posizione)) {
         for (n in 1:nrow(temp_gene)) {
-          if (posizione >= temp_gene[n,"lower"] & posizione <= temp_gene[n,"upper"])
+          if (posizione[k,2] >= temp_gene[n,"lower"] & posizione[k,2] <= temp_gene[n,"upper"]) {
             temp_gene[n,"ok"]=T
+            temp_gene[n,"snp"]=posizione[k,"snp"]
+            temp_gene[n,"snp_position"]=posizione[k,"position"]
           }
+        }
       }
     temp_gene=temp_gene[temp_gene$ok,]
     if (chr == chromosomes[1]) {
@@ -76,12 +81,22 @@ search_genes <- function(gtf_file,snp_file,method=c("gene","exon"),window=250000
     }
   }  
   
-  final=final[,1:5]
+  final=final[,c(1:7,9:10)]
   return(final)
+}
+
+
+##### CONTROLLO SE FUNZIONA IL NOME DELLO SNP #####
+
+finale_genes=search_genes(gtf_file = gtf_path ,snp_file = snp_path ,method="gene")
+head(finale_genes)
+
+for (i in 1:nrow(finale_genes)) {
+  if (finale_genes[i,"snp_position"]<=finale_genes[i,"upper"] & finale_genes[i,"snp_position"]>=finale_genes[i,"lower"]) {
+    finale_genes$controllo=T
+  }
 }
 
 
 
 
-finale_genes=search_genes(gtf_file = gtf_path ,snp_file = snp_path ,method="gene")
-head(finale_genes)
